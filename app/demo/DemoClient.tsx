@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle2,
@@ -24,40 +23,29 @@ import {
   getPreparedExport,
   type DemoStep,
 } from "@/app/demo/demo-state";
-import type {
-  AuditEvent,
-  IntegrationStatus,
-  ToolCallResult,
-} from "@/lib/types";
+import { useDemoController } from "@/app/demo/use-demo-controller";
+import type { IntegrationStatus } from "@/lib/types";
 
 interface DemoClientProps {
   signedInEmail: string;
   signedInName: string;
 }
 
-type BusyAction = "mission" | "grant" | "reset" | null;
-
-async function readJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request failed with ${response.status}`);
-  }
-
-  return (await response.json()) as T;
-}
-
 export default function DemoClient({
   signedInEmail,
   signedInName,
 }: DemoClientProps) {
-  const [toolCalls, setToolCalls] = useState<ToolCallResult[]>([]);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
-  const [activeVisas, setActiveVisas] = useState<string[]>([]);
-  const [integrationStatuses, setIntegrationStatuses] = useState<
-    IntegrationStatus[]
-  >([]);
-  const [busyAction, setBusyAction] = useState<BusyAction>(null);
-  const [status, setStatus] = useState("Ready");
+  const {
+    toolCalls,
+    auditEvents,
+    activeVisas,
+    integrationStatuses,
+    busyAction,
+    status,
+    runMission,
+    grantVisa,
+    resetDemo,
+  } = useDemoController();
 
   const demoSteps = getDemoSteps({
     signedInEmail,
@@ -66,142 +54,6 @@ export default function DemoClient({
     auditEvents,
   });
   const preparedExport = getPreparedExport(toolCalls);
-
-  async function refreshAuditEvents() {
-    const data = await readJson<{ events: AuditEvent[] }>(
-      await fetch("/api/audit-log", { cache: "no-store" }),
-    );
-    setAuditEvents(data.events);
-  }
-
-  async function refreshActiveVisas() {
-    const data = await readJson<{ permissions: string[] }>(
-      await fetch("/api/agent/visas", { cache: "no-store" }),
-    );
-    setActiveVisas(data.permissions);
-  }
-
-  async function refreshIntegrationStatus() {
-    try {
-      const data = await readJson<{ statuses: IntegrationStatus[] }>(
-        await fetch("/api/health", { cache: "no-store" }),
-      );
-      setIntegrationStatuses(data.statuses);
-    } catch {
-      setIntegrationStatuses([
-        {
-          key: "authkit",
-          label: "Integration status",
-          state: "failing",
-          detail: "Status check failed.",
-        },
-      ]);
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    Promise.all([
-      fetch("/api/audit-log", { cache: "no-store" }).then((response) =>
-        readJson<{ events: AuditEvent[] }>(response),
-      ),
-      fetch("/api/agent/visas", { cache: "no-store" }).then((response) =>
-        readJson<{ permissions: string[] }>(response),
-      ),
-    ])
-      .then(([auditData, visaData]) => {
-        if (!cancelled) {
-          setAuditEvents(auditData.events);
-          setActiveVisas(visaData.permissions);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setStatus(error instanceof Error ? error.message : String(error));
-        }
-      });
-
-    fetch("/api/health", { cache: "no-store" })
-      .then((response) => readJson<{ statuses: IntegrationStatus[] }>(response))
-      .then((data) => {
-        if (!cancelled) {
-          setIntegrationStatuses(data.statuses);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setIntegrationStatuses([
-            {
-              key: "authkit",
-              label: "Integration status",
-              state: "failing",
-              detail: "Status check failed.",
-            },
-          ]);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function runMission() {
-    setBusyAction("mission");
-    setStatus("Running mission");
-
-    try {
-      const data = await readJson<{ toolCalls: ToolCallResult[] }>(
-        await fetch("/api/demo/run", { method: "POST" }),
-      );
-      setToolCalls(data.toolCalls);
-      await refreshAuditEvents();
-      await refreshIntegrationStatus();
-      setStatus("Mission complete");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function grantVisa() {
-    setBusyAction("grant");
-    setStatus("Granting invoice.export");
-
-    try {
-      await readJson(
-        await fetch("/api/agent/grant-visa", { method: "POST" }),
-      );
-      await refreshActiveVisas();
-      await refreshAuditEvents();
-      await refreshIntegrationStatus();
-      setStatus("Granted invoice.export to Finance Agent");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function resetDemo() {
-    setBusyAction("reset");
-    setStatus("Resetting demo");
-
-    try {
-      await readJson(await fetch("/api/demo/reset", { method: "POST" }));
-      setToolCalls([]);
-      await refreshActiveVisas();
-      await refreshAuditEvents();
-      await refreshIntegrationStatus();
-      setStatus("Demo reset");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusyAction(null);
-    }
-  }
 
   return (
     <div className="grid gap-6">
