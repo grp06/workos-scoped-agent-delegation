@@ -34,7 +34,7 @@ export async function POST() {
     actorId: DEMO_USER_ID,
     action: "demo.reset",
     targetType: "demo",
-    targetId: "agent-passport-control",
+    targetId: "scoped-agent-delegation",
     metadata: {
       agentId: FINANCE_AGENT_ID,
       restoredVisas: initialVisaPermissions.join(","),

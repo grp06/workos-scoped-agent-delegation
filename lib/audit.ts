@@ -171,7 +171,7 @@ export async function emitWorkosAuditEvent(localEvent: AuditEvent) {
         ],
         context: {
           location: appUrl,
-          userAgent: "agent-passport-control-demo",
+          userAgent: "scoped-agent-delegation-demo",
         },
         metadata: {
           ...localEvent.metadata,

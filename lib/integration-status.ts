@@ -37,7 +37,7 @@ export function getFgaIntegrationStatus({
         key: "fga",
         label: "WorkOS FGA",
         state: "ready",
-        detail: "Configured; run mission to observe a check.",
+        detail: "Configured; test agent access to observe a check.",
       };
 }
 

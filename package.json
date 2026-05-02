@@ -1,5 +1,5 @@
 {
-  "name": "agent-passport-control",
+  "name": "scoped-agent-delegation",
   "version": "0.1.0",
   "private": true,
   "engines": {

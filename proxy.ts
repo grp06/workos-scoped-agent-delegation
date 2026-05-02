@@ -15,5 +15,6 @@ export const config = {
     "/api/agent/:path*",
     "/api/audit-log/:path*",
     "/api/health/:path*",
+    "/api/workos/:path*",
   ],
 };

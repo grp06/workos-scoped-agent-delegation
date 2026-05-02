@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   fetchActiveVisaPermissions,
@@ -44,7 +44,10 @@ const initialVisas = [
   AGENT_PERMISSIONS.invoiceSummarize,
 ];
 
-function expectCalledBefore(first: ReturnType<typeof vi.fn>, second: ReturnType<typeof vi.fn>) {
+function expectCalledBefore(
+  first: ReturnType<typeof vi.fn>,
+  second: ReturnType<typeof vi.fn>,
+) {
   expect(first.mock.invocationCallOrder[0]).toBeLessThan(
     second.mock.invocationCallOrder[0],
   );
@@ -118,6 +121,7 @@ async function renderLoadedController() {
 }
 
 beforeEach(() => {
+  vi.useRealTimers();
   vi.resetAllMocks();
   mockFetchAuditEvents.mockResolvedValue(auditEvents);
   mockFetchActiveVisaPermissions.mockResolvedValue(initialVisas);
@@ -125,6 +129,10 @@ beforeEach(() => {
   mockRunDemoMission.mockResolvedValue(toolCalls);
   mockGrantDemoVisa.mockResolvedValue(undefined);
   mockResetDemoState.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("useDemoController", () => {
@@ -152,7 +160,7 @@ describe("useDemoController", () => {
     expectCalledBefore(mockRunDemoMission, mockFetchAuditEvents);
     expectCalledBefore(mockFetchAuditEvents, mockFetchIntegrationStatuses);
     expect(hook.result.current.toolCalls).toEqual(toolCalls);
-    expect(hook.result.current.status).toBe("Mission complete");
+    expect(hook.result.current.status).toBe("Access check complete");
   });
 
   it("grants a visa and refreshes visas, audit events, and integration status", async () => {
@@ -174,8 +182,9 @@ describe("useDemoController", () => {
     );
   });
 
-  it("resets the demo, clears tool calls, and refreshes visas, audit events, and integration status", async () => {
+  it("resets the demo, clears tool calls, refreshes data, and shows a transient reset status", async () => {
     const hook = await renderLoadedController();
+    vi.useFakeTimers();
 
     await act(async () => {
       await hook.result.current.runMission();
@@ -196,6 +205,33 @@ describe("useDemoController", () => {
     expectCalledBefore(mockFetchAuditEvents, mockFetchIntegrationStatuses);
     expect(hook.result.current.toolCalls).toEqual([]);
     expect(hook.result.current.status).toBe("Demo reset");
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(hook.result.current.status).toBe("Ready");
+  });
+
+  it("does not let an old reset status timer overwrite a newer action status", async () => {
+    const hook = await renderLoadedController();
+    vi.useFakeTimers();
+
+    await act(async () => {
+      await hook.result.current.resetDemo();
+    });
+
+    expect(hook.result.current.status).toBe("Demo reset");
+
+    await act(async () => {
+      await hook.result.current.runMission();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(hook.result.current.status).toBe("Access check complete");
   });
 
   it("uses the synthetic failing row when integration status loading fails", async () => {
@@ -219,9 +255,7 @@ describe("useDemoController", () => {
     const initialVisaLoad = deferred<string[]>();
     const initialStatuses = deferred<IntegrationStatus[]>();
     mockFetchAuditEvents.mockReturnValueOnce(initialAudit.promise);
-    mockFetchActiveVisaPermissions.mockReturnValueOnce(
-      initialVisaLoad.promise,
-    );
+    mockFetchActiveVisaPermissions.mockReturnValueOnce(initialVisaLoad.promise);
     mockFetchIntegrationStatuses.mockReturnValueOnce(initialStatuses.promise);
 
     const hook = renderHook(() => useDemoController());

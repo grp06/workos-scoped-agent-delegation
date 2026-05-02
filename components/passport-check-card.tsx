@@ -44,7 +44,7 @@ export default function PassportCheckCard({ result }: PassportCheckCardProps) {
           />
           <Operator text="AND" />
           <DecisionLine
-            label="Agent visa"
+            label="Agent scope"
             value={result.agentVisaAllows}
             detail={result.requiredPermission ?? "not configured"}
           />
@@ -83,9 +83,7 @@ function DecisionLine({
         <span
           className={cn(
             "rounded-sm px-2 py-1 text-xs font-semibold uppercase",
-            value
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700",
+            value ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700",
           )}
         >
           {strong ? (value ? "allowed" : "denied") : value ? "yes" : "no"}
@@ -101,13 +99,7 @@ function DecisionLine({
   );
 }
 
-function Operator({
-  text,
-  icon,
-}: {
-  text?: string;
-  icon?: React.ReactNode;
-}) {
+function Operator({ text, icon }: { text?: string; icon?: React.ReactNode }) {
   return (
     <div className="flex h-8 items-center justify-center rounded-md bg-zinc-200 px-2 text-xs font-bold text-zinc-600 sm:h-auto sm:bg-transparent">
       {icon ?? text}

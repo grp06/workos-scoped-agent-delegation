@@ -63,7 +63,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    service: "agent-passport-control",
+    service: "scoped-agent-delegation",
     statuses,
   });
 }

@@ -18,32 +18,34 @@ This file is for AI agents that need to navigate the repo quickly. Read `AGENTS.
 
 - `app/login/route.ts`: starts WorkOS AuthKit login.
 - `app/callback/route.ts`: handles WorkOS AuthKit callback.
-- `app/api/demo/reset/route.ts`: resets local visas and audit events to the scripted starting state.
+- `app/api/demo/reset/route.ts`: resets local agent scopes and audit events to the scripted starting state.
 - `app/api/demo/run/route.ts`: runs the scripted finance mission for the signed-in user.
-- `app/api/agent/grant-visa/route.ts`: grants the local narrow `invoice.export` visa.
-- `app/api/agent/visas/route.ts`: returns active local visas.
+- `app/api/agent/grant-visa/route.ts`: grants the local narrow `invoice.export` scope. The route name is legacy.
+- `app/api/agent/visas/route.ts`: returns active local agent scopes. The route name is legacy.
 - `app/api/authz/check/route.ts`: direct authorization check endpoint. The route validates request shape; valid tool-action vocabulary lives in `lib/demo-catalog.ts`.
 - `app/api/audit-log/route.ts`: returns local audit events.
 - `app/api/health/route.ts`: signed-in safe integration status for AuthKit, database, WorkOS FGA, and WorkOS Audit Logs. It returns status labels/details only, never secrets.
+- `app/api/workos/audit-portal/route.ts`: creates a signed-in WorkOS Admin Portal link for the organization audit trail.
 - `proxy.ts`: AuthKit proxy matcher for signed-in demo pages and API routes, including `/api/health`.
 
 ## Core Authorization Modules
 
-- `lib/authz.ts`: central access decision module. It combines WorkOS human access and local agent visa access.
+- `lib/authz.ts`: central access decision module. It combines WorkOS human access and local agent-scope access.
 - `lib/demo-catalog.ts`: stable demo vocabulary for WorkOS resource type, WorkOS human permission slugs, local agent permission slugs, canonical demo resource ids, and tool-action mapping/validation.
 - `lib/human-access.ts`: WorkOS FGA membership lookup and permission checks.
-- `lib/visas.ts`: active local agent visa loading.
+- `lib/visas.ts`: active local agent-scope loading. The filename is legacy.
 - `lib/mission.ts`: scripted tool calls used by the demo.
 - `lib/audit.ts`: local audit persistence and WorkOS Audit Logs emission.
+- `lib/workos-proof.ts`: WorkOS proof helpers for demo UI, including Admin Portal audit links.
 - `lib/integration-status.ts`: pure status classification for the signed-in integration status panel.
 - `lib/workos.ts`: WorkOS SDK construction and required env handling.
 - `lib/types.ts`: shared TypeScript contracts.
-- `lib/demo-data.ts`: local seed data for the fake user, agent, documents, and initial visas.
+- `lib/demo-data.ts`: local seed data for the fake user, agent, documents, and initial agent scopes.
 - `lib/db.ts`: Neon/Postgres SQL client.
 
 ## Persistence And Setup
 
-- `db/schema.sql`: database tables for users, agents, resources, visas, and audit events.
+- `db/schema.sql`: database tables for users, agents, resources, agent scopes, and audit events.
 - `scripts/init-db.ts`: creates tables and seeds local demo data.
 - `scripts/init-workos-fga.ts`: creates WorkOS document permissions, an org role, demo resources, and role assignments.
 - `scripts/init-workos-audit-schemas.ts`: creates WorkOS Audit Log schemas for emitted demo actions.
@@ -72,15 +74,15 @@ npm run build
 
 - `.next/`: Next.js build/dev output. Do not edit.
 - `node_modules/`: installed dependencies. Do not edit.
-- `public/`: static assets from the Next.js scaffold.
-- `.agent/`: planning docs. Read `.agent/execplan.md` before changing product behavior.
+- `app/icon.svg`: app favicon/icon. Avoid reintroducing unused starter assets.
+- `.agent/`: local planning docs. This directory is intentionally ignored and should not be required to understand the public repo.
 
 ## Common Change Targets
 
 - To change permission/resource vocabulary: start in `lib/demo-catalog.ts`, then update `lib/demo-data.ts`, WorkOS setup scripts, and affected tests.
 - To change final authorization policy: start in `lib/authz.ts`.
 - To change WorkOS membership or FGA call behavior: start in `lib/human-access.ts`.
-- To change agent visa rules: start in `lib/authz.ts`, `lib/demo-data.ts`, and `app/api/agent/grant-visa/route.ts`.
+- To change agent-scope rules: start in `lib/authz.ts`, `lib/demo-data.ts`, and `app/api/agent/grant-visa/route.ts`.
 - To change the scripted demo mission: start in `lib/mission.ts`.
 - To change audit payloads: start in `lib/audit.ts`, then update `scripts/init-workos-audit-schemas.ts`.
 - To change guided demo progress: start in `app/demo/demo-state.ts`, then update `app/demo/DemoClient.tsx`.

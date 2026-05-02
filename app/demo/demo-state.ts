@@ -1,7 +1,4 @@
-import {
-  AGENT_PERMISSIONS,
-  DEMO_RESOURCE_IDS,
-} from "@/lib/demo-catalog";
+import { AGENT_PERMISSIONS, DEMO_RESOURCE_IDS } from "@/lib/demo-catalog";
 import type { AuditEvent, ToolCallResult } from "@/lib/types";
 
 export type DemoStepKey =
@@ -27,6 +24,14 @@ export interface PreparedExport {
   detail: string;
 }
 
+export interface PresentedAuditEvent {
+  title: string;
+  detail: string;
+  status: string;
+}
+
+export type DemoPhase = "ready" | "blocked" | "visaGranted" | "complete";
+
 interface DemoStepInput {
   signedInEmail: string;
   toolCalls: ToolCallResult[];
@@ -47,6 +52,10 @@ function hasInvoiceExportWithDecision(
       toolCall.resourceId === INVOICE_RESOURCE_ID &&
       toolCall.decision === decision,
   );
+}
+
+function hasSentInvoiceExportAuditProof(auditEvents: AuditEvent[]) {
+  return Boolean(getInvoiceExportAuditProof(auditEvents));
 }
 
 export function getPreparedExport(
@@ -70,6 +79,110 @@ export function getPreparedExport(
   };
 }
 
+export function getInvoiceExportCheck(toolCalls: ToolCallResult[]) {
+  return (
+    toolCalls.find(
+      (toolCall) =>
+        toolCall.tool === "export_csv" &&
+        toolCall.resourceId === INVOICE_RESOURCE_ID &&
+        toolCall.decision === "allowed",
+    ) ??
+    toolCalls.find(
+      (toolCall) =>
+        toolCall.tool === "export_csv" &&
+        toolCall.resourceId === INVOICE_RESOURCE_ID,
+    )
+  );
+}
+
+export function getRecentAuditEvents(events: AuditEvent[], limit = 3) {
+  return [...events]
+    .sort(
+      (left, right) =>
+        new Date(right.occurredAt).getTime() -
+        new Date(left.occurredAt).getTime(),
+    )
+    .slice(0, limit);
+}
+
+export function getInvoiceExportAuditProof(events: AuditEvent[]) {
+  return getRecentAuditEvents(events, events.length).find(
+    (event) =>
+      event.workosStatus === "sent" &&
+      event.decision === "allowed" &&
+      event.action === "agent.tool_call.allowed" &&
+      event.targetId === INVOICE_RESOURCE_ID &&
+      event.metadata.tool === "export_csv",
+  );
+}
+
+function stringMetadata(event: AuditEvent, key: string): string | undefined {
+  const value = event.metadata[key];
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function titleCaseDecision(decision: AuditEvent["decision"]) {
+  if (decision === "allowed") {
+    return "Allowed";
+  }
+
+  if (decision === "denied") {
+    return "Denied";
+  }
+
+  return "Recorded";
+}
+
+export function presentAuditEvent(event: AuditEvent): PresentedAuditEvent {
+  const tool = stringMetadata(event, "tool");
+  const resourceName = stringMetadata(event, "resourceName") ?? event.targetId;
+  const requiredPermission = stringMetadata(event, "requiredPermission");
+  const decision = titleCaseDecision(event.decision);
+
+  if (tool) {
+    return {
+      title: `${decision} ${tool} on ${resourceName}`,
+      detail: requiredPermission
+        ? `${event.action}; required ${requiredPermission}`
+        : event.action,
+      status: event.decision ?? event.workosStatus,
+    };
+  }
+
+  return {
+    title: event.action,
+    detail: `${event.actorType}:${event.actorId} -> ${event.targetType}:${event.targetId}`,
+    status: event.decision ?? event.workosStatus,
+  };
+}
+
+export function getDemoPhase({
+  activeVisas,
+  toolCalls,
+}: {
+  activeVisas: string[];
+  toolCalls: ToolCallResult[];
+}): DemoPhase {
+  const preparedExport = getPreparedExport(toolCalls);
+
+  if (preparedExport) {
+    return "complete";
+  }
+
+  const invoiceExportCheck = getInvoiceExportCheck(toolCalls);
+
+  if (!invoiceExportCheck) {
+    return "ready";
+  }
+
+  if (activeVisas.includes(INVOICE_EXPORT_PERMISSION)) {
+    return "visaGranted";
+  }
+
+  return "blocked";
+}
+
 export function getDemoSteps({
   signedInEmail,
   toolCalls,
@@ -78,19 +191,18 @@ export function getDemoSteps({
 }: DemoStepInput): DemoStep[] {
   const signedIn = Boolean(signedInEmail);
   const missionRun = toolCalls.length > 0;
-  const visaGranted = activeVisas.includes(INVOICE_EXPORT_PERMISSION);
+  const scopeGranted = activeVisas.includes(INVOICE_EXPORT_PERMISSION);
   const exportPrepared = Boolean(getPreparedExport(toolCalls));
   const exportBlocked =
     exportPrepared || hasInvoiceExportWithDecision(toolCalls, "denied");
   const auditProof =
-    auditEvents.length > 0 &&
-    auditEvents.some((event) => event.workosStatus === "sent");
+    exportPrepared && hasSentInvoiceExportAuditProof(auditEvents);
 
   const completed = [
     signedIn,
     missionRun,
     exportBlocked,
-    visaGranted,
+    scopeGranted,
     exportPrepared,
     auditProof,
   ];
@@ -113,23 +225,25 @@ export function getDemoSteps({
     },
     {
       key: "missionRun",
-      label: "Run mission",
+      label: "Test access",
       state: state(1),
-      detail: missionRun ? "Finance tool calls completed" : "Start the agent",
+      detail: missionRun ? "Access check completed" : "Start the check",
     },
     {
       key: "exportBlocked",
       label: "Export blocked",
       state: state(2),
       detail: exportBlocked
-        ? "Invoice export denied before visa"
-        : "Agent lacks invoice.export",
+        ? "Invoice export denied before scope"
+        : `Agent lacks ${INVOICE_EXPORT_PERMISSION}`,
     },
     {
       key: "visaGranted",
-      label: "Visa granted",
+      label: "Scope granted",
       state: state(3),
-      detail: visaGranted ? "invoice.export active" : "Grant narrow access",
+      detail: scopeGranted
+        ? `${INVOICE_EXPORT_PERMISSION} active`
+        : "Grant narrow access",
     },
     {
       key: "exportPrepared",
@@ -137,7 +251,7 @@ export function getDemoSteps({
       state: state(4),
       detail: exportPrepared
         ? "Invoice export prepared"
-        : "Retry mission with visa",
+        : "Retry check with scope",
     },
     {
       key: "auditProof",

@@ -1,11 +1,22 @@
 import { checkAccess } from "@/lib/authz";
 import { recordAndEmitAuditEvent } from "@/lib/audit";
-import {
-  DEMO_RESOURCE_IDS,
-  DOCUMENT_RESOURCE_TYPE,
-} from "@/lib/demo-catalog";
-import { FINANCE_AGENT_ID } from "@/lib/demo-data";
+import { DEMO_RESOURCE_IDS, DOCUMENT_RESOURCE_TYPE } from "@/lib/demo-catalog";
+import { FINANCE_AGENT_ID, resourceSeeds } from "@/lib/demo-data";
 import type { CheckInput, ToolAction, ToolCallResult } from "@/lib/types";
+
+const resourceNameById: ReadonlyMap<string, string> = new Map(
+  resourceSeeds.map((resource) => [resource.id, resource.name]),
+);
+
+function getResourceName(resourceId: string) {
+  const resourceName = resourceNameById.get(resourceId);
+
+  if (!resourceName) {
+    throw new Error(`No demo resource seed found for id ${resourceId}.`);
+  }
+
+  return resourceName;
+}
 
 const missionToolCalls: Array<{
   tool: ToolAction;
@@ -15,22 +26,22 @@ const missionToolCalls: Array<{
   {
     tool: "search_docs",
     resourceId: DEMO_RESOURCE_IDS.q4Invoices,
-    resourceName: "q4-invoices.csv",
+    resourceName: getResourceName(DEMO_RESOURCE_IDS.q4Invoices),
   },
   {
     tool: "summarize_document",
     resourceId: DEMO_RESOURCE_IDS.q4Invoices,
-    resourceName: "q4-invoices.csv",
+    resourceName: getResourceName(DEMO_RESOURCE_IDS.q4Invoices),
   },
   {
     tool: "export_csv",
     resourceId: DEMO_RESOURCE_IDS.q4Invoices,
-    resourceName: "q4-invoices.csv",
+    resourceName: getResourceName(DEMO_RESOURCE_IDS.q4Invoices),
   },
   {
     tool: "export_csv",
     resourceId: DEMO_RESOURCE_IDS.payroll,
-    resourceName: "payroll.xlsx",
+    resourceName: getResourceName(DEMO_RESOURCE_IDS.payroll),
   },
 ];
 

@@ -7,7 +7,18 @@ import type {
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request failed with ${response.status}`);
+    let message = text;
+
+    try {
+      const data = JSON.parse(text) as { error?: unknown };
+      if (typeof data.error === "string" && data.error) {
+        message = data.error;
+      }
+    } catch {
+      // Fall back to the response body for non-JSON errors.
+    }
+
+    throw new Error(message || `Request failed with ${response.status}`);
   }
 
   return (await response.json()) as T;
@@ -60,4 +71,12 @@ export async function resetDemoState(): Promise<void> {
   await readJson<{ ok: true }>(
     await fetch("/api/demo/reset", { method: "POST" }),
   );
+}
+
+export async function createWorkosAuditPortalLink(): Promise<string> {
+  const data = await readJson<{ url: string }>(
+    await fetch("/api/workos/audit-portal", { method: "POST" }),
+  );
+
+  return data.url;
 }

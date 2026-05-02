@@ -43,6 +43,9 @@ function messageFromError(error: unknown) {
 
 export function useDemoController(): DemoController {
   const generationRef = useRef(0);
+  const resetStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [toolCalls, setToolCalls] = useState<ToolCallResult[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [activeVisas, setActiveVisas] = useState<string[]>([]);
@@ -51,6 +54,24 @@ export function useDemoController(): DemoController {
   >([]);
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [status, setStatus] = useState("Ready");
+
+  function clearResetStatusTimeout() {
+    if (resetStatusTimeoutRef.current) {
+      clearTimeout(resetStatusTimeoutRef.current);
+      resetStatusTimeoutRef.current = null;
+    }
+  }
+
+  function showTransientResetStatus(generation: number) {
+    clearResetStatusTimeout();
+    setStatus("Demo reset");
+    resetStatusTimeoutRef.current = setTimeout(() => {
+      if (generation === generationRef.current) {
+        setStatus("Ready");
+      }
+      resetStatusTimeoutRef.current = null;
+    }, 2000);
+  }
 
   async function refreshAuditEvents() {
     setAuditEvents(await fetchAuditEvents());
@@ -99,19 +120,21 @@ export function useDemoController(): DemoController {
 
     return () => {
       cancelled = true;
+      clearResetStatusTimeout();
     };
   }, []);
 
   async function runMission() {
     generationRef.current += 1;
+    clearResetStatusTimeout();
     setBusyAction("mission");
-    setStatus("Running mission");
+    setStatus("Testing agent access");
 
     try {
       setToolCalls(await runDemoMission());
       await refreshAuditEvents();
       await refreshIntegrationStatus();
-      setStatus("Mission complete");
+      setStatus("Access check complete");
     } catch (error) {
       setStatus(messageFromError(error));
     } finally {
@@ -121,6 +144,7 @@ export function useDemoController(): DemoController {
 
   async function grantVisa() {
     generationRef.current += 1;
+    clearResetStatusTimeout();
     setBusyAction("grant");
     setStatus("Granting invoice.export");
 
@@ -139,6 +163,8 @@ export function useDemoController(): DemoController {
 
   async function resetDemo() {
     generationRef.current += 1;
+    const generation = generationRef.current;
+    clearResetStatusTimeout();
     setBusyAction("reset");
     setStatus("Resetting demo");
 
@@ -148,7 +174,7 @@ export function useDemoController(): DemoController {
       await refreshActiveVisas();
       await refreshAuditEvents();
       await refreshIntegrationStatus();
-      setStatus("Demo reset");
+      showTransientResetStatus(generation);
     } catch (error) {
       setStatus(messageFromError(error));
     } finally {

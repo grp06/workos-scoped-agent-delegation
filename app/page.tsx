@@ -12,15 +12,15 @@ export default function Home() {
               WorkOS demo
             </div>
             <h1 className="text-5xl font-semibold tracking-normal text-zinc-950 sm:text-6xl">
-              Agent Passport Control
+              Scoped Agent Delegation
             </h1>
             <p className="mt-6 max-w-xl text-xl leading-8 text-zinc-600">
               Scoped delegation for AI agents using WorkOS AuthKit,
               Authorization/FGA, and Audit Logs.
             </p>
             <p className="mt-5 max-w-xl text-base leading-7 text-zinc-600">
-              A human can have broad access, but an agent only gets a narrow,
-              temporary visa. Every tool call is checked by both gates,
+              A human can have broad access, but an agent only gets narrow,
+              temporary scope. Every tool call is checked by both gates,
               explained, and recorded.
             </p>
             <Link
@@ -44,8 +44,8 @@ export default function Home() {
             </div>
             <div className="space-y-3">
               {[
-                ["WorkOS FGA", "Alice can view payroll", "allowed"],
-                ["Agent visa", "Finance Agent lacks payroll.export", "denied"],
+                ["WorkOS FGA", "Human can view payroll", "allowed"],
+                ["Agent scope", "Finance Agent lacks payroll.export", "denied"],
                 ["Audit Logs", "agent.tool_call.denied", "recorded"],
               ].map(([label, value, state]) => (
                 <div
@@ -78,7 +78,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-zinc-500" />
-            Scoped visas
+            Scoped agent permissions
           </div>
           <div className="flex items-center gap-2">
             <ScrollText className="size-4 text-zinc-500" />

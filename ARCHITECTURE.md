@@ -1,18 +1,18 @@
 # Architecture
 
-This document is for AI agents working on Agent Passport Control. It explains the current system shape, module ownership, and data flow.
+This document is for AI agents working on Scoped Agent Delegation. It explains the current system shape, module ownership, and data flow.
 
 ## Purpose
 
-Agent Passport Control demonstrates scoped delegation for AI agents.
+Scoped Agent Delegation demonstrates scoped access for AI agents.
 
 The key idea:
 
 ```txt
-final decision = human WorkOS access AND local agent visa
+final decision = human WorkOS access AND local agent scope
 ```
 
-A human may be allowed to export a finance document, but the agent cannot do it unless the app has also granted the agent a narrow, temporary visa for that exact action.
+A human may be allowed to export a finance document, but the agent cannot do it unless the app has also granted the agent a narrow, temporary scope for that exact action.
 
 ## System Overview
 
@@ -28,7 +28,7 @@ Next.js App Router
 Authorization decision
   |-----------------------------|
   v                             v
-WorkOS Authorization/FGA     Local Postgres visa check
+WorkOS Authorization/FGA     Local Postgres agent-scope check
   |                             |
   |                             v
   |                         agent_visas
@@ -41,7 +41,7 @@ WorkOS Audit Logs + local audit_events
 
 - **WorkOS AuthKit** owns sign-in and session identity.
 - **WorkOS Authorization/FGA** owns human document access.
-- **WorkOS Audit Logs** receives durable audit events for reset, visa grant, and tool-call decisions.
+- **WorkOS Audit Logs** receives durable audit events for reset, scope grant, and tool-call decisions.
 - **Neon/Postgres** stores local demo state.
 
 ## Demo-Only State
@@ -51,7 +51,7 @@ These are intentionally fake or local:
 - The Finance Agent is a seeded local row in `agents`.
 - The documents are seeded local rows in `resources`; no real document content exists.
 - The mission is scripted in `lib/mission.ts`; no real search, summary, or export tool runs.
-- Agent visas are local rows in `agent_visas`; they model the concept of scoped delegated access.
+- Agent scopes are local rows in `agent_visas`; the table name is legacy, but the public demo language is "scope."
 - `demo_users` contains scaffold/demo identity data and is not the source of truth for AuthKit identity.
 
 ## Request Flow
@@ -96,7 +96,7 @@ It loads:
 - local agent row
 - local resource row
 - WorkOS human access result
-- local agent visa result
+- local agent-scope result
 
 Then it returns a single `CheckResult` with:
 
@@ -137,7 +137,7 @@ organizationMembershipId: active membership for signed-in user
 
 If WorkOS lookup or authorization fails, the app fails closed and returns a denied decision.
 
-### Local Agent Visa
+### Local Agent Scope
 
 Owned by `lib/authz.ts`, `lib/visas.ts`, and `agent_visas`.
 
@@ -156,14 +156,14 @@ contract.read
 contract.export
 ```
 
-Initial visa state gives the Finance Agent:
+Initial scope state gives the Finance Agent:
 
 ```txt
 invoice.read
 invoice.summarize
 ```
 
-Clicking **Grant narrow invoice export visa** adds:
+Clicking **Grant invoice.export scope** adds:
 
 ```txt
 invoice.export
@@ -192,6 +192,8 @@ agent.tool_call.denied
 
 If audit payload metadata changes, update both `lib/audit.ts` or the callsite metadata and `scripts/init-workos-audit-schemas.ts`.
 
+The demo can also generate a WorkOS Admin Portal link for the organization audit trail. `app/api/workos/audit-portal/route.ts` owns the signed-in request boundary, while `lib/workos-proof.ts` owns the WorkOS portal-link call and app return URL.
+
 ## Database Tables
 
 Defined in `db/schema.sql`.
@@ -199,7 +201,7 @@ Defined in `db/schema.sql`.
 - `demo_users`: demo scaffold user rows.
 - `agents`: local agent definitions.
 - `resources`: fake document records and local agent permissions.
-- `agent_visas`: narrow, expiring local permissions for the agent.
+- `agent_visas`: narrow, expiring local permissions for the agent. The database name is kept for compatibility with the current implementation.
 - `audit_events`: local replay log plus WorkOS delivery status.
 
 ## Setup Scripts
@@ -215,6 +217,7 @@ The WorkOS FGA script assumes the dashboard already has resource type `document`
 - Keep final authorization policy in `lib/authz.ts`.
 - Keep stable demo vocabulary and tool-action-to-WorkOS-permission mapping in `lib/demo-catalog.ts`.
 - Keep WorkOS user/membership/FGA details in `lib/human-access.ts`.
+- Keep WorkOS proof/demo-link helpers in `lib/workos-proof.ts`.
 - Keep WorkOS SDK creation in `lib/workos.ts`.
 - Keep audit emit details in `lib/audit.ts`.
 - Keep integration status classification in `lib/integration-status.ts`; it may consume WorkOS document permission vocabulary for classification, but it owns the status-state rules.
@@ -229,5 +232,5 @@ Do not spread policy decisions into route handlers or UI components. Routes shou
 - This is a demo app, not a production authorization gateway.
 - The agent is simulated; there is no real autonomous runtime.
 - The document tools are scripted; no external document store is queried.
-- WorkOS FGA covers the human side only. The agent visa model is intentionally local so the concept is easy to inspect.
+- WorkOS FGA covers the human side only. The agent-scope model is intentionally local so the concept is easy to inspect.
 - There is no deployment config yet beyond Vercel-compatible Next.js conventions.
