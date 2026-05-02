@@ -1,22 +1,38 @@
 import { describe, expect, it } from "vitest";
 
 import { getDemoSteps, getPreparedExport } from "./demo-state";
+import {
+  AGENT_PERMISSIONS,
+  DEMO_RESOURCE_IDS,
+  DOCUMENT_RESOURCE_TYPE,
+  WORKOS_DOCUMENT_PERMISSIONS,
+} from "@/lib/demo-catalog";
 import type { AuditEvent, ToolCallResult } from "@/lib/types";
+
+const initialVisas = [
+  AGENT_PERMISSIONS.invoiceRead,
+  AGENT_PERMISSIONS.invoiceSummarize,
+];
+
+const invoiceExportVisas = [
+  ...initialVisas,
+  AGENT_PERMISSIONS.invoiceExport,
+];
 
 function toolCall(
   overrides: Partial<ToolCallResult> = {},
 ): ToolCallResult {
   return {
     tool: "export_csv",
-    resourceId: "q4-invoices",
+    resourceId: DEMO_RESOURCE_IDS.q4Invoices,
     resourceName: "q4-invoices.csv",
     humanHasAccess: true,
     humanAccessSource: "workos_fga",
-    humanRequiredPermission: "document:export",
+    humanRequiredPermission: WORKOS_DOCUMENT_PERMISSIONS.export,
     agentVisaAllows: false,
     decision: "denied",
     reason: "Denied for test.",
-    requiredPermission: "invoice.export",
+    requiredPermission: AGENT_PERMISSIONS.invoiceExport,
     ...overrides,
   };
 }
@@ -28,8 +44,8 @@ function auditEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
     actorType: "agent",
     actorId: "finance-agent",
     action: "agent.tool_call.denied",
-    targetType: "document",
-    targetId: "q4-invoices",
+    targetType: DOCUMENT_RESOURCE_TYPE,
+    targetId: DEMO_RESOURCE_IDS.q4Invoices,
     decision: "denied",
     reason: "Denied for test.",
     metadata: {},
@@ -44,7 +60,7 @@ describe("getDemoSteps", () => {
     const steps = getDemoSteps({
       signedInEmail: "alice@example.com",
       toolCalls: [],
-      activeVisas: ["invoice.read", "invoice.summarize"],
+      activeVisas: initialVisas,
       auditEvents: [],
     });
 
@@ -62,7 +78,7 @@ describe("getDemoSteps", () => {
     const steps = getDemoSteps({
       signedInEmail: "alice@example.com",
       toolCalls: [toolCall()],
-      activeVisas: ["invoice.read", "invoice.summarize"],
+      activeVisas: initialVisas,
       auditEvents: [],
     });
 
@@ -81,7 +97,7 @@ describe("getDemoSteps", () => {
     const steps = getDemoSteps({
       signedInEmail: "alice@example.com",
       toolCalls: [toolCall()],
-      activeVisas: ["invoice.read", "invoice.summarize", "invoice.export"],
+      activeVisas: invoiceExportVisas,
       auditEvents: [],
     });
 
@@ -97,7 +113,7 @@ describe("getDemoSteps", () => {
     const steps = getDemoSteps({
       signedInEmail: "alice@example.com",
       toolCalls: [toolCall({ decision: "allowed", agentVisaAllows: true })],
-      activeVisas: ["invoice.read", "invoice.summarize", "invoice.export"],
+      activeVisas: invoiceExportVisas,
       auditEvents: [auditEvent({ workosStatus: "sent" })],
     });
 
@@ -108,7 +124,7 @@ describe("getDemoSteps", () => {
     const steps = getDemoSteps({
       signedInEmail: "alice@example.com",
       toolCalls: [toolCall({ decision: "allowed", agentVisaAllows: true })],
-      activeVisas: ["invoice.read", "invoice.summarize", "invoice.export"],
+      activeVisas: invoiceExportVisas,
       auditEvents: [auditEvent({ workosStatus: "failed" })],
     });
 
@@ -130,7 +146,7 @@ describe("getPreparedExport", () => {
       ]),
     ).toEqual({
       filename: "q4-invoices.csv",
-      permission: "invoice.export",
+      permission: AGENT_PERMISSIONS.invoiceExport,
       detail: "Demo artifact only; no real file was created.",
     });
   });

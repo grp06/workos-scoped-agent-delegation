@@ -1,3 +1,4 @@
+import { WORKOS_DOCUMENT_PERMISSION_PREFIX } from "@/lib/demo-catalog";
 import type { AuditEvent, IntegrationStatus } from "@/lib/types";
 
 export function getFgaIntegrationStatus({
@@ -20,7 +21,9 @@ export function getFgaIntegrationStatus({
     (event) =>
       event.metadata.humanAccessSource === "workos_fga" ||
       (typeof event.metadata.humanRequiredPermission === "string" &&
-        event.metadata.humanRequiredPermission.startsWith("document:")),
+        event.metadata.humanRequiredPermission.startsWith(
+          WORKOS_DOCUMENT_PERMISSION_PREFIX,
+        )),
   );
 
   return observedFga

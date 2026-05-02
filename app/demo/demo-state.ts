@@ -1,3 +1,7 @@
+import {
+  AGENT_PERMISSIONS,
+  DEMO_RESOURCE_IDS,
+} from "@/lib/demo-catalog";
 import type { AuditEvent, ToolCallResult } from "@/lib/types";
 
 export type DemoStepKey =
@@ -30,8 +34,8 @@ interface DemoStepInput {
   auditEvents: AuditEvent[];
 }
 
-const INVOICE_RESOURCE_ID = "q4-invoices";
-const INVOICE_EXPORT_PERMISSION = "invoice.export";
+const INVOICE_RESOURCE_ID = DEMO_RESOURCE_IDS.q4Invoices;
+const INVOICE_EXPORT_PERMISSION = AGENT_PERMISSIONS.invoiceExport;
 
 function hasInvoiceExportWithDecision(
   toolCalls: ToolCallResult[],

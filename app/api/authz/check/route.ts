@@ -2,13 +2,8 @@ import { withAuth } from "@workos-inc/authkit-nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { checkAccess } from "@/lib/authz";
-import type { CheckInput, ToolAction } from "@/lib/types";
-
-const toolActions = new Set<ToolAction>([
-  "search_docs",
-  "summarize_document",
-  "export_csv",
-]);
+import { isToolAction } from "@/lib/demo-catalog";
+import type { CheckInput } from "@/lib/types";
 
 type CheckRequestInput = Omit<CheckInput, "human">;
 
@@ -23,7 +18,7 @@ function isCheckInput(value: unknown): value is CheckRequestInput {
     typeof candidate.agentId === "string" &&
     typeof candidate.resourceId === "string" &&
     typeof candidate.action === "string" &&
-    toolActions.has(candidate.action as ToolAction)
+    isToolAction(candidate.action)
   );
 }
 

@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { AGENT_PERMISSIONS } from "@/lib/demo-catalog";
 import { checkWorkosHumanAccess } from "@/lib/human-access";
 import type {
   Agent,
@@ -99,7 +100,7 @@ export function getRequiredPermission(
 
   if (action === "summarize_document") {
     return resource.category === "invoice"
-      ? "invoice.summarize"
+      ? AGENT_PERMISSIONS.invoiceSummarize
       : resource.requiredReadPermission;
   }
 

@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { evaluateAccess, getRequiredPermission } from "./authz";
 import {
+  AGENT_PERMISSIONS,
+  DEMO_RESOURCE_IDS,
+  WORKOS_DOCUMENT_PERMISSIONS,
+} from "./demo-catalog";
+import {
   financeAgentSeed,
   initialVisaPermissions,
   resourceSeeds,
@@ -13,7 +18,7 @@ const agent = financeAgentSeed satisfies Agent;
 const initialVisas = new Set<string>(initialVisaPermissions);
 const invoiceExportVisas = new Set<string>([
   ...initialVisaPermissions,
-  "invoice.export",
+  AGENT_PERMISSIONS.invoiceExport,
 ]);
 
 function resource(id: string): Resource {
@@ -52,37 +57,53 @@ function checkWithVisas(
 
 describe("authorization policy", () => {
   it("allows invoice search with the initial visa", () => {
-    const result = checkWithVisas("search_docs", "q4-invoices", initialVisas);
+    const result = checkWithVisas(
+      "search_docs",
+      DEMO_RESOURCE_IDS.q4Invoices,
+      initialVisas,
+    );
 
-    expect(result.requiredPermission).toBe("invoice.read");
-    expect(result.humanRequiredPermission).toBe("document:read");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.invoiceRead);
+    expect(result.humanRequiredPermission).toBe(
+      WORKOS_DOCUMENT_PERMISSIONS.read,
+    );
     expect(result.decision).toBe("allowed");
   });
 
   it("allows invoice summarization with the initial visa", () => {
     const result = checkWithVisas(
       "summarize_document",
-      "q4-invoices",
+      DEMO_RESOURCE_IDS.q4Invoices,
       initialVisas,
     );
 
-    expect(result.requiredPermission).toBe("invoice.summarize");
-    expect(result.humanRequiredPermission).toBe("document:summarize");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.invoiceSummarize);
+    expect(result.humanRequiredPermission).toBe(
+      WORKOS_DOCUMENT_PERMISSIONS.summarize,
+    );
     expect(result.decision).toBe("allowed");
   });
 
   it("denies payroll export with the initial visa", () => {
-    const result = checkWithVisas("export_csv", "payroll", initialVisas);
+    const result = checkWithVisas(
+      "export_csv",
+      DEMO_RESOURCE_IDS.payroll,
+      initialVisas,
+    );
 
-    expect(result.requiredPermission).toBe("payroll.export");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.payrollExport);
     expect(result.decision).toBe("denied");
     expect(result.reason).toContain("Finance Agent lacks payroll.export");
   });
 
   it("denies invoice export before granting invoice.export", () => {
-    const result = checkWithVisas("export_csv", "q4-invoices", initialVisas);
+    const result = checkWithVisas(
+      "export_csv",
+      DEMO_RESOURCE_IDS.q4Invoices,
+      initialVisas,
+    );
 
-    expect(result.requiredPermission).toBe("invoice.export");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.invoiceExport);
     expect(result.decision).toBe("denied");
     expect(result.reason).toContain("Finance Agent lacks invoice.export");
   });
@@ -90,18 +111,22 @@ describe("authorization policy", () => {
   it("allows invoice export after granting invoice.export", () => {
     const result = checkWithVisas(
       "export_csv",
-      "q4-invoices",
+      DEMO_RESOURCE_IDS.q4Invoices,
       invoiceExportVisas,
     );
 
-    expect(result.requiredPermission).toBe("invoice.export");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.invoiceExport);
     expect(result.decision).toBe("allowed");
   });
 
   it("still denies payroll export after granting invoice.export", () => {
-    const result = checkWithVisas("export_csv", "payroll", invoiceExportVisas);
+    const result = checkWithVisas(
+      "export_csv",
+      DEMO_RESOURCE_IDS.payroll,
+      invoiceExportVisas,
+    );
 
-    expect(result.requiredPermission).toBe("payroll.export");
+    expect(result.requiredPermission).toBe(AGENT_PERMISSIONS.payrollExport);
     expect(result.decision).toBe("denied");
     expect(result.reason).toContain("Finance Agent lacks payroll.export");
   });
@@ -109,7 +134,7 @@ describe("authorization policy", () => {
 
 describe("human access gate", () => {
   it("denies when WorkOS FGA denies human access even if the agent visa allows", () => {
-    const target = resource("q4-invoices");
+    const target = resource(DEMO_RESOURCE_IDS.q4Invoices);
     const result = evaluateAccess({
       agent,
       action: "export_csv",
@@ -117,7 +142,7 @@ describe("human access gate", () => {
       humanAccess: {
         allowed: false,
         source: "workos_fga",
-        requiredPermission: "document:export",
+        requiredPermission: WORKOS_DOCUMENT_PERMISSIONS.export,
         reason: "WorkOS FGA says Alice lacks document:export.",
       },
       agentVisaAllows: true,

@@ -1,5 +1,9 @@
 import { checkAccess } from "@/lib/authz";
 import { recordAndEmitAuditEvent } from "@/lib/audit";
+import {
+  DEMO_RESOURCE_IDS,
+  DOCUMENT_RESOURCE_TYPE,
+} from "@/lib/demo-catalog";
 import { FINANCE_AGENT_ID } from "@/lib/demo-data";
 import type { CheckInput, ToolAction, ToolCallResult } from "@/lib/types";
 
@@ -10,22 +14,22 @@ const missionToolCalls: Array<{
 }> = [
   {
     tool: "search_docs",
-    resourceId: "q4-invoices",
+    resourceId: DEMO_RESOURCE_IDS.q4Invoices,
     resourceName: "q4-invoices.csv",
   },
   {
     tool: "summarize_document",
-    resourceId: "q4-invoices",
+    resourceId: DEMO_RESOURCE_IDS.q4Invoices,
     resourceName: "q4-invoices.csv",
   },
   {
     tool: "export_csv",
-    resourceId: "q4-invoices",
+    resourceId: DEMO_RESOURCE_IDS.q4Invoices,
     resourceName: "q4-invoices.csv",
   },
   {
     tool: "export_csv",
-    resourceId: "payroll",
+    resourceId: DEMO_RESOURCE_IDS.payroll,
     resourceName: "payroll.xlsx",
   },
 ];
@@ -50,7 +54,7 @@ export async function runFinanceMission(
         check.decision === "allowed"
           ? "agent.tool_call.allowed"
           : "agent.tool_call.denied",
-      targetType: "document",
+      targetType: DOCUMENT_RESOURCE_TYPE,
       targetId: toolCall.resourceId,
       decision: check.decision,
       reason: check.reason,

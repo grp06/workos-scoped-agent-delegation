@@ -1,5 +1,9 @@
 import type { User } from "@workos-inc/node";
 
+import {
+  DOCUMENT_RESOURCE_TYPE,
+  getWorkosPermissionForToolAction,
+} from "@/lib/demo-catalog";
 import type { Resource, ToolAction } from "@/lib/types";
 import { getWorkos, requireEnv } from "@/lib/workos";
 
@@ -18,15 +22,7 @@ export interface HumanAccessResult {
 const membershipCache = new Map<string, string>();
 
 export function getHumanPermission(action: ToolAction) {
-  if (action === "search_docs") {
-    return "document:read";
-  }
-
-  if (action === "summarize_document") {
-    return "document:summarize";
-  }
-
-  return "document:export";
+  return getWorkosPermissionForToolAction(action);
 }
 
 export function getHumanDisplayName(user: AuthenticatedHuman["user"]) {
@@ -75,7 +71,7 @@ export async function checkWorkosHumanAccess(
       organizationMembershipId,
       permissionSlug: requiredPermission,
       resourceExternalId: resource.id,
-      resourceTypeSlug: "document",
+      resourceTypeSlug: DOCUMENT_RESOURCE_TYPE,
     });
 
     if (!result.authorized) {

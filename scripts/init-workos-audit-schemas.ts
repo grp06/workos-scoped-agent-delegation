@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
 import { WorkOS } from "@workos-inc/node";
 
+import { DOCUMENT_RESOURCE_TYPE } from "../lib/demo-catalog";
+
 loadEnvConfig(process.cwd());
 
 const AUDIT_SCHEMAS = [
@@ -24,7 +26,7 @@ const AUDIT_SCHEMAS = [
   },
   {
     action: "agent.tool_call.allowed",
-    targets: [{ type: "document" }],
+    targets: [{ type: DOCUMENT_RESOURCE_TYPE }],
     metadata: {
       decision: "string",
       reason: "string",
@@ -39,7 +41,7 @@ const AUDIT_SCHEMAS = [
   },
   {
     action: "agent.tool_call.denied",
-    targets: [{ type: "document" }],
+    targets: [{ type: DOCUMENT_RESOURCE_TYPE }],
     metadata: {
       decision: "string",
       reason: "string",

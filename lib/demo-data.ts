@@ -1,6 +1,12 @@
+import {
+  AGENT_PERMISSIONS,
+  DEMO_RESOURCE_IDS,
+  DOCUMENT_RESOURCE_TYPE,
+} from "./demo-catalog";
+
 export const DEMO_USER_ID = "alice";
 export const FINANCE_AGENT_ID = "finance-agent";
-export const INVOICE_EXPORT_PERMISSION = "invoice.export";
+export const INVOICE_EXPORT_PERMISSION = AGENT_PERMISSIONS.invoiceExport;
 
 export const demoUserSeed = {
   id: DEMO_USER_ID,
@@ -18,42 +24,42 @@ export const financeAgentSeed = {
 
 export const resourceSeeds = [
   {
-    id: "q4-invoices",
+    id: DEMO_RESOURCE_IDS.q4Invoices,
     name: "q4-invoices.csv",
-    resourceType: "document",
+    resourceType: DOCUMENT_RESOURCE_TYPE,
     category: "invoice",
-    requiredReadPermission: "invoice.read",
-    requiredExportPermission: INVOICE_EXPORT_PERMISSION,
+    requiredReadPermission: AGENT_PERMISSIONS.invoiceRead,
+    requiredExportPermission: AGENT_PERMISSIONS.invoiceExport,
   },
   {
-    id: "payroll",
+    id: DEMO_RESOURCE_IDS.payroll,
     name: "payroll.xlsx",
-    resourceType: "document",
+    resourceType: DOCUMENT_RESOURCE_TYPE,
     category: "payroll",
-    requiredReadPermission: "payroll.read",
-    requiredExportPermission: "payroll.export",
+    requiredReadPermission: AGENT_PERMISSIONS.payrollRead,
+    requiredExportPermission: AGENT_PERMISSIONS.payrollExport,
   },
   {
-    id: "board-deck",
+    id: DEMO_RESOURCE_IDS.boardDeck,
     name: "board-deck.pdf",
-    resourceType: "document",
+    resourceType: DOCUMENT_RESOURCE_TYPE,
     category: "board",
-    requiredReadPermission: "board.read",
+    requiredReadPermission: AGENT_PERMISSIONS.boardRead,
     requiredExportPermission: null,
   },
   {
-    id: "customer-contracts",
+    id: DEMO_RESOURCE_IDS.customerContracts,
     name: "customer-contracts.pdf",
-    resourceType: "document",
+    resourceType: DOCUMENT_RESOURCE_TYPE,
     category: "contract",
-    requiredReadPermission: "contract.read",
-    requiredExportPermission: "contract.export",
+    requiredReadPermission: AGENT_PERMISSIONS.contractRead,
+    requiredExportPermission: AGENT_PERMISSIONS.contractExport,
   },
 ] as const;
 
 export const initialVisaPermissions = [
-  "invoice.read",
-  "invoice.summarize",
+  AGENT_PERMISSIONS.invoiceRead,
+  AGENT_PERMISSIONS.invoiceSummarize,
 ] as const;
 
 export function visaId(agentId: string, permission: string) {

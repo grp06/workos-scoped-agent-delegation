@@ -4,6 +4,7 @@ import {
   getAuditLogsIntegrationStatus,
   getFgaIntegrationStatus,
 } from "./integration-status";
+import { WORKOS_DOCUMENT_PERMISSIONS } from "./demo-catalog";
 import type { AuditEvent } from "./types";
 
 function auditEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
@@ -46,7 +47,7 @@ describe("getFgaIntegrationStatus", () => {
           auditEvent({
             metadata: {
               humanAccessSource: "workos_fga",
-              humanRequiredPermission: "document:export",
+              humanRequiredPermission: WORKOS_DOCUMENT_PERMISSIONS.export,
             },
           }),
         ],

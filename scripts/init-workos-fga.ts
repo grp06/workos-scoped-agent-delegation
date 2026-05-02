@@ -1,30 +1,17 @@
 import { loadEnvConfig } from "@next/env";
 import { WorkOS } from "@workos-inc/node";
 
+import {
+  DOCUMENT_RESOURCE_TYPE,
+  FINANCE_DOCUMENT_RESOURCE_IDS,
+  WORKOS_DOCUMENT_PERMISSION_DEFINITIONS,
+} from "../lib/demo-catalog";
 import { resourceSeeds } from "../lib/demo-data";
 
 loadEnvConfig(process.cwd());
 
-const DOCUMENT_RESOURCE_TYPE = "document";
 const FINANCE_ADMIN_ROLE = "org-finance-admin";
-const HUMAN_PERMISSIONS = [
-  {
-    slug: "document:read",
-    name: "Read document",
-    description: "Read a document in the finance data room.",
-  },
-  {
-    slug: "document:summarize",
-    name: "Summarize document",
-    description: "Summarize a document in the finance data room.",
-  },
-  {
-    slug: "document:export",
-    name: "Export document",
-    description: "Export a document from the finance data room.",
-  },
-] as const;
-const FINANCE_DOCUMENT_IDS = new Set(["q4-invoices", "payroll"]);
+const FINANCE_DOCUMENT_IDS = new Set<string>(FINANCE_DOCUMENT_RESOURCE_IDS);
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -52,7 +39,7 @@ function isConflict(error: unknown) {
 
 async function ensurePermission(
   workos: WorkOS,
-  permission: (typeof HUMAN_PERMISSIONS)[number],
+  permission: (typeof WORKOS_DOCUMENT_PERMISSION_DEFINITIONS)[number],
 ) {
   try {
     await workos.authorization.getPermission(permission.slug);
@@ -96,7 +83,11 @@ async function ensureRole(workos: WorkOS, organizationId: string) {
   await workos.authorization.setOrganizationRolePermissions(
     organizationId,
     FINANCE_ADMIN_ROLE,
-    { permissions: HUMAN_PERMISSIONS.map((permission) => permission.slug) },
+    {
+      permissions: WORKOS_DOCUMENT_PERMISSION_DEFINITIONS.map(
+        (permission) => permission.slug,
+      ),
+    },
   );
   console.log(`Set role permissions: ${FINANCE_ADMIN_ROLE}`);
 }
@@ -203,7 +194,7 @@ async function main() {
   const organizationId = requireEnv("WORKOS_ORGANIZATION_ID");
   const workos = new WorkOS(requireEnv("WORKOS_API_KEY"));
 
-  for (const permission of HUMAN_PERMISSIONS) {
+  for (const permission of WORKOS_DOCUMENT_PERMISSION_DEFINITIONS) {
     await ensurePermission(workos, permission);
   }
 

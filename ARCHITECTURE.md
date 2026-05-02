@@ -116,6 +116,8 @@ Callers should not recreate this policy.
 
 Owned by `lib/human-access.ts`.
 
+Stable permission vocabulary and the tool-action mapping live in `lib/demo-catalog.ts`.
+
 Tool actions map to WorkOS permissions:
 
 ```txt
@@ -139,13 +141,19 @@ If WorkOS lookup or authorization fails, the app fails closed and returns a deni
 
 Owned by `lib/authz.ts`, `lib/visas.ts`, and `agent_visas`.
 
+Stable local permission strings live in `lib/demo-catalog.ts`. Final local authorization policy stays in `lib/authz.ts`.
+
 Local resource permissions are demo-specific:
 
 ```txt
 invoice.read
 invoice.summarize
 invoice.export
+payroll.read
 payroll.export
+board.read
+contract.read
+contract.export
 ```
 
 Initial visa state gives the Finance Agent:
@@ -205,10 +213,11 @@ The WorkOS FGA script assumes the dashboard already has resource type `document`
 ## Ownership Rules For Future Changes
 
 - Keep final authorization policy in `lib/authz.ts`.
+- Keep stable demo vocabulary and tool-action-to-WorkOS-permission mapping in `lib/demo-catalog.ts`.
 - Keep WorkOS user/membership/FGA details in `lib/human-access.ts`.
 - Keep WorkOS SDK creation in `lib/workos.ts`.
 - Keep audit emit details in `lib/audit.ts`.
-- Keep integration status classification in `lib/integration-status.ts`.
+- Keep integration status classification in `lib/integration-status.ts`; it may consume WorkOS document permission vocabulary for classification, but it owns the status-state rules.
 - Keep demo fixture data in `lib/demo-data.ts`.
 - Keep guided-demo progress and fake export derivation in `app/demo/demo-state.ts`.
 - Keep browser-visible decision display in `components/passport-check-card.tsx`.

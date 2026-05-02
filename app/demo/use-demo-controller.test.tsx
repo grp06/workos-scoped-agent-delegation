@@ -12,6 +12,12 @@ import {
   runDemoMission,
 } from "@/app/demo/demo-api";
 import { useDemoController } from "@/app/demo/use-demo-controller";
+import {
+  AGENT_PERMISSIONS,
+  DEMO_RESOURCE_IDS,
+  DOCUMENT_RESOURCE_TYPE,
+  WORKOS_DOCUMENT_PERMISSIONS,
+} from "@/lib/demo-catalog";
 import type {
   AuditEvent,
   IntegrationStatus,
@@ -33,6 +39,10 @@ const mockFetchIntegrationStatuses = vi.mocked(fetchIntegrationStatuses);
 const mockRunDemoMission = vi.mocked(runDemoMission);
 const mockGrantDemoVisa = vi.mocked(grantDemoVisa);
 const mockResetDemoState = vi.mocked(resetDemoState);
+const initialVisas = [
+  AGENT_PERMISSIONS.invoiceRead,
+  AGENT_PERMISSIONS.invoiceSummarize,
+];
 
 function expectCalledBefore(first: ReturnType<typeof vi.fn>, second: ReturnType<typeof vi.fn>) {
   expect(first.mock.invocationCallOrder[0]).toBeLessThan(
@@ -47,8 +57,8 @@ const auditEvents: AuditEvent[] = [
     actorType: "agent",
     actorId: "finance-agent",
     action: "agent.tool_call.denied",
-    targetType: "document",
-    targetId: "q4-invoices",
+    targetType: DOCUMENT_RESOURCE_TYPE,
+    targetId: DEMO_RESOURCE_IDS.q4Invoices,
     decision: "denied",
     reason: "Denied for test.",
     metadata: {},
@@ -69,15 +79,15 @@ const integrationStatuses: IntegrationStatus[] = [
 const toolCalls: ToolCallResult[] = [
   {
     tool: "export_csv",
-    resourceId: "q4-invoices",
+    resourceId: DEMO_RESOURCE_IDS.q4Invoices,
     resourceName: "q4-invoices.csv",
     humanHasAccess: true,
     humanAccessSource: "workos_fga",
-    humanRequiredPermission: "document:export",
+    humanRequiredPermission: WORKOS_DOCUMENT_PERMISSIONS.export,
     agentVisaAllows: true,
     decision: "allowed",
     reason: "Allowed for test.",
-    requiredPermission: "invoice.export",
+    requiredPermission: AGENT_PERMISSIONS.invoiceExport,
   },
 ];
 
@@ -97,10 +107,7 @@ async function renderLoadedController() {
 
   await waitFor(() => {
     expect(hook.result.current.auditEvents).toEqual(auditEvents);
-    expect(hook.result.current.activeVisas).toEqual([
-      "invoice.read",
-      "invoice.summarize",
-    ]);
+    expect(hook.result.current.activeVisas).toEqual(initialVisas);
     expect(hook.result.current.integrationStatuses).toEqual(
       integrationStatuses,
     );
@@ -113,10 +120,7 @@ async function renderLoadedController() {
 beforeEach(() => {
   vi.resetAllMocks();
   mockFetchAuditEvents.mockResolvedValue(auditEvents);
-  mockFetchActiveVisaPermissions.mockResolvedValue([
-    "invoice.read",
-    "invoice.summarize",
-  ]);
+  mockFetchActiveVisaPermissions.mockResolvedValue(initialVisas);
   mockFetchIntegrationStatuses.mockResolvedValue(integrationStatuses);
   mockRunDemoMission.mockResolvedValue(toolCalls);
   mockGrantDemoVisa.mockResolvedValue(undefined);
@@ -212,10 +216,12 @@ describe("useDemoController", () => {
 
   it("does not let stale initial loads overwrite action results", async () => {
     const initialAudit = deferred<AuditEvent[]>();
-    const initialVisas = deferred<string[]>();
+    const initialVisaLoad = deferred<string[]>();
     const initialStatuses = deferred<IntegrationStatus[]>();
     mockFetchAuditEvents.mockReturnValueOnce(initialAudit.promise);
-    mockFetchActiveVisaPermissions.mockReturnValueOnce(initialVisas.promise);
+    mockFetchActiveVisaPermissions.mockReturnValueOnce(
+      initialVisaLoad.promise,
+    );
     mockFetchIntegrationStatuses.mockReturnValueOnce(initialStatuses.promise);
 
     const hook = renderHook(() => useDemoController());
@@ -225,7 +231,7 @@ describe("useDemoController", () => {
     });
 
     initialAudit.resolve([]);
-    initialVisas.resolve(["stale.permission"]);
+    initialVisaLoad.resolve(["stale.permission"]);
     initialStatuses.resolve([
       {
         key: "authkit",
@@ -238,15 +244,12 @@ describe("useDemoController", () => {
     await act(async () => {
       await Promise.all([
         initialAudit.promise,
-        initialVisas.promise,
+        initialVisaLoad.promise,
         initialStatuses.promise,
       ]);
     });
 
-    expect(hook.result.current.activeVisas).toEqual([
-      "invoice.read",
-      "invoice.summarize",
-    ]);
+    expect(hook.result.current.activeVisas).toEqual(initialVisas);
     expect(hook.result.current.auditEvents).toEqual(auditEvents);
     expect(hook.result.current.integrationStatuses).toEqual(
       integrationStatuses,
