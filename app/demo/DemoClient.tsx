@@ -119,73 +119,76 @@ export default function DemoClient({
           <DemoStepper steps={demoSteps} />
         </div>
 
-        <div className="grid min-w-0 items-start gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="grid min-w-0 content-start gap-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[#656b8a]">
-                  Current action
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-normal sm:text-3xl">
-                  {headline}
-                </h2>
+        <div className="grid min-w-0 gap-4 p-4">
+          <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid min-w-0 content-start gap-3">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[#656b8a]">Request</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-normal sm:text-3xl">
+                    {headline}
+                  </h2>
+                </div>
+                {phase !== "blocked" ? (
+                  <Button
+                    className="h-11 w-full bg-[#6d6df2] px-5 text-base text-white shadow-[0_10px_24px_rgba(109,109,242,0.24)] hover:bg-[#5d5de8] lg:w-auto"
+                    onClick={primaryAction.onClick}
+                    disabled={busyAction !== null}
+                  >
+                    {primaryAction.icon}
+                    {primaryAction.label}
+                  </Button>
+                ) : null}
               </div>
-              {phase !== "blocked" ? (
-                <Button
-                  className="h-11 w-full bg-[#6d6df2] px-5 text-base text-white shadow-[0_10px_24px_rgba(109,109,242,0.24)] hover:bg-[#5d5de8] lg:w-auto"
-                  onClick={primaryAction.onClick}
-                  disabled={busyAction !== null}
-                >
-                  {primaryAction.icon}
-                  {primaryAction.label}
-                </Button>
+
+              {shouldShowStatus(status) ? (
+                <StatusStrip status={status} />
+              ) : null}
+
+              <RequestedActionCard />
+
+              <DecisionConsole
+                signedInName={signedInName}
+                hasInvoiceVisa={hasInvoiceVisa}
+                invoiceExportCheck={invoiceExportCheck}
+                preparedExport={preparedExport}
+                busyAction={busyAction}
+                grantVisa={grantVisa}
+              />
+
+              {toolCalls.length > 0 ? (
+                <NarrowVisaProof
+                  hasInvoiceVisa={hasInvoiceVisa}
+                  payrollDeniedCheck={payrollDeniedCheck}
+                />
               ) : null}
             </div>
 
-            {shouldShowStatus(status) ? <StatusStrip status={status} /> : null}
-
-            <RequestedActionCard />
-
-            <DecisionConsole
-              signedInName={signedInName}
-              hasInvoiceVisa={hasInvoiceVisa}
-              invoiceExportCheck={invoiceExportCheck}
-              preparedExport={preparedExport}
-              busyAction={busyAction}
-              grantVisa={grantVisa}
-            />
-
-            {toolCalls.length > 0 ? (
-              <NarrowVisaProof
-                hasInvoiceVisa={hasInvoiceVisa}
-                payrollDeniedCheck={payrollDeniedCheck}
+            <aside className="grid min-w-0 content-start gap-3">
+              <AuditProof
+                events={auditEvents}
+                hasMissionRun={toolCalls.length > 0}
               />
-            ) : null}
+              <ResourceSummary />
+              {phase !== "complete" ? (
+                <Button
+                  variant="outline"
+                  onClick={resetDemo}
+                  disabled={busyAction !== null}
+                  className="justify-center"
+                >
+                  {busyAction === "reset" ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <RotateCcw />
+                  )}
+                  Reset demo
+                </Button>
+              ) : null}
+            </aside>
           </div>
 
-          <aside className="grid min-w-0 content-start gap-3">
-            <AuditProof
-              events={auditEvents}
-              hasMissionRun={toolCalls.length > 0}
-            />
-            <IntegrationStrip statuses={integrationStatuses} />
-            <ResourceSummary />
-            {phase !== "complete" ? (
-              <Button
-                variant="outline"
-                onClick={resetDemo}
-                disabled={busyAction !== null}
-                className="justify-center"
-              >
-                {busyAction === "reset" ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <RotateCcw />
-                )}
-                Reset demo
-              </Button>
-            ) : null}
-          </aside>
+          <IntegrationStrip statuses={integrationStatuses} />
         </div>
       </section>
     </div>
@@ -220,7 +223,7 @@ function getPrimaryAction({
 
   if (phase === "visaGranted") {
     return {
-      label: "Run again",
+      label: "Retry export",
       onClick: runMission,
       icon:
         busyAction === "mission" ? (
@@ -245,7 +248,7 @@ function getPrimaryAction({
   }
 
   return {
-    label: "Test agent access",
+    label: "Check access",
     onClick: runMission,
     icon:
       busyAction === "mission" ? (
@@ -276,7 +279,7 @@ function getDemoHeadline({
   }
 
   if (phase === "visaGranted" && hasInvoiceVisa && invoiceExportCheck) {
-    return `${invoiceExportPermission} scope granted for this agent`;
+    return `${invoiceExportPermission} is granted`;
   }
 
   return `${financeAgentSeed.name} wants to export ${invoiceResource.name}`;
@@ -304,7 +307,7 @@ function DemoContextBar({ signedInName }: { signedInName: string }) {
         <RelationshipArrow />
         <RelationshipChip
           icon={<Database />}
-          label="Scope"
+          label="Resource"
           value="Finance data room"
         />
       </div>
@@ -396,37 +399,21 @@ function StatusStrip({ status }: { status: string }) {
 function RequestedActionCard() {
   return (
     <section className="rounded-xl border border-[#e4e7f3] bg-white p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#656b8a]">
-            Requested action
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <p className="min-w-0 text-base font-semibold text-[#030527]">
+          {financeAgentSeed.name} requests <CodeToken>export_csv</CodeToken> on{" "}
+          <CodeToken>{invoiceResource.name}</CodeToken>
+        </p>
+        <div className="rounded-lg border border-[#e4e7f3] bg-[#fafbff] px-3 py-2 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#8f96bd]">
+            Required agent permission
           </p>
-          <p className="mt-1 text-base font-semibold text-[#030527]">
-            {financeAgentSeed.name} wants to run{" "}
-            <CodeToken>export_csv</CodeToken> on{" "}
-            <CodeToken>{invoiceResource.name}</CodeToken>
+          <p className="mt-1 break-words font-mono font-semibold text-[#030527]">
+            {invoiceExportPermission}
           </p>
-        </div>
-        <div className="grid gap-2 text-sm sm:grid-cols-3 lg:max-w-[560px]">
-          <ActionFact label="Tool" value="export_csv" />
-          <ActionFact label="Resource" value={invoiceResource.name} />
-          <ActionFact label="Required scope" value={invoiceExportPermission} />
         </div>
       </div>
     </section>
-  );
-}
-
-function ActionFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[#e4e7f3] bg-[#fafbff] px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#8f96bd]">
-        {label}
-      </p>
-      <p className="mt-1 break-words font-mono text-sm font-semibold text-[#030527]">
-        {value}
-      </p>
-    </div>
   );
 }
 
@@ -462,25 +449,25 @@ function DecisionConsole({
     : blocked
       ? "Blocked"
       : retryReady
-        ? "Scope granted"
+        ? "Permission granted"
         : "Not checked";
   const decisionText = preparedExport
     ? `${preparedExport.filename} export prepared`
     : blocked
-      ? `Agent is missing ${invoiceExportPermission}`
+      ? `${financeAgentSeed.name} needs ${invoiceExportPermission}`
       : hasInvoiceVisa
-        ? "Scope granted; run again to export"
-        : "Test agent access to see the decision";
+        ? "Permission granted; retry the export"
+        : "Check access to see the decision";
   const humanGateValue = !hasAttempt
     ? "Pending"
     : invoiceExportCheck?.humanHasAccess
       ? "Allowed"
       : "Denied";
   const humanGateDetail = !hasAttempt
-    ? `WorkOS FGA will check whether ${signedInName} can use ${invoiceExportPermission}.`
+    ? `WorkOS FGA will check whether ${signedInName} can access this invoice.`
     : invoiceExportCheck?.humanHasAccess
-      ? `AuthKit user + WorkOS FGA allowed ${invoiceExportCheck.humanRequiredPermission}.`
-      : `WorkOS FGA denied ${invoiceExportCheck?.humanRequiredPermission ?? invoiceExportPermission}.`;
+      ? `${signedInName} can access invoice data.`
+      : `${signedInName} cannot access invoice data.`;
   const humanGateTone = !hasAttempt
     ? "neutral"
     : invoiceExportCheck?.humanHasAccess
@@ -533,52 +520,43 @@ function DecisionConsole({
       </div>
 
       <div className="mt-5 rounded-lg border border-white/80 bg-white/70 px-3 py-2 text-sm font-semibold text-[#29363d]">
-        Final decision = human access + agent scope
+        Final decision = human access + agent permission
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <GateRow
-          label="Human access from WorkOS"
+          label="Human access"
           value={humanGateValue}
           detail={humanGateDetail}
           tone={humanGateTone}
         />
         <GateRow
-          label="Agent scope"
+          label="Agent permission"
           value={hasInvoiceVisa ? "Granted" : "Missing"}
           detail={
             hasInvoiceVisa
-              ? `${invoiceExportPermission} active`
-              : `No ${invoiceExportPermission} scope`
+              ? `${invoiceExportPermission} is active`
+              : `${invoiceExportPermission} is required`
           }
           tone={hasInvoiceVisa ? "good" : "bad"}
+          action={
+            blocked ? (
+              <Button
+                className="h-9 w-full shrink-0 bg-[#6d6df2] px-4 text-white shadow-[0_10px_24px_rgba(109,109,242,0.18)] hover:bg-[#5d5de8] sm:w-auto"
+                onClick={grantVisa}
+                disabled={busyAction !== null}
+              >
+                {busyAction === "grant" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <BadgeCheck />
+                )}
+                Grant {invoiceExportPermission}
+              </Button>
+            ) : null
+          }
         />
       </div>
-
-      {blocked ? (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-red-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-semibold text-red-950">
-              Grant the missing scope
-            </p>
-            <p className="mt-1 text-sm text-red-800">
-              Allow only {invoiceExportPermission} for this agent run.
-            </p>
-          </div>
-          <Button
-            className="h-10 w-full shrink-0 bg-[#6d6df2] px-4 text-white shadow-[0_10px_24px_rgba(109,109,242,0.24)] hover:bg-[#5d5de8] sm:w-auto"
-            onClick={grantVisa}
-            disabled={busyAction !== null}
-          >
-            {busyAction === "grant" ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <BadgeCheck />
-            )}
-            Grant {invoiceExportPermission}
-          </Button>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -618,26 +596,33 @@ function GateRow({
   value,
   detail,
   tone,
+  action,
 }: {
   label: string;
   value: string;
   detail: string;
   tone: "good" | "bad" | "neutral";
+  action?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-white/80 bg-white/80 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="font-semibold">{label}</p>
-        <StatusPill
-          label={value}
-          className={cn(
-            tone === "good" && "bg-[#bff8e9] text-[#087a62]",
-            tone === "bad" && "bg-red-100 text-red-700",
-            tone === "neutral" && "bg-[#eceef8] text-[#656b8a]",
-          )}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold">{label}</p>
+            <StatusPill
+              label={value}
+              className={cn(
+                tone === "good" && "bg-[#bff8e9] text-[#087a62]",
+                tone === "bad" && "bg-red-100 text-red-700",
+                tone === "neutral" && "bg-[#eceef8] text-[#656b8a]",
+              )}
+            />
+          </div>
+          <p className="mt-2 text-sm text-[#656b8a]">{detail}</p>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <p className="mt-2 text-sm text-[#656b8a]">{detail}</p>
     </div>
   );
 }
@@ -653,7 +638,7 @@ function NarrowVisaProof({
     ? "Payroll export still denied"
     : "Payroll export also denied";
   const detail = hasInvoiceVisa
-    ? `The invoice scope stayed narrow and did not grant ${payrollExportPermission}.`
+    ? `Granting ${invoiceExportPermission} did not grant ${payrollExportPermission}.`
     : `The agent does not have ${payrollExportPermission}, so payroll stays out of scope.`;
 
   return (
@@ -691,10 +676,21 @@ function AuditProof({
   async function openWorkosAuditPortal() {
     setPortalState("loading");
     setPortalError(null);
+    const portalWindow = window.open("about:blank", "_blank");
+
+    if (!portalWindow) {
+      setPortalState("error");
+      setPortalError("Browser blocked the audit log tab.");
+      return;
+    }
 
     try {
-      window.location.href = await createWorkosAuditPortalLink();
+      const portalUrl = await createWorkosAuditPortalLink();
+      portalWindow.opener = null;
+      portalWindow.location.href = portalUrl;
+      setPortalState("idle");
     } catch (error) {
+      portalWindow?.close();
       setPortalState("error");
       setPortalError(error instanceof Error ? error.message : String(error));
     }
@@ -705,9 +701,7 @@ function AuditProof({
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#29363d]">
           <FileText className="size-4 text-[#656b8a]" />
-          <span className="min-w-0 break-words">
-            Invoice export audit proof
-          </span>
+          <span className="min-w-0 break-words">Audit log</span>
         </div>
         <StatusPill
           label={invoiceExportProof ? "WorkOS sent" : "Waiting"}
@@ -722,33 +716,29 @@ function AuditProof({
       {invoiceExportProof ? (
         <div className="mt-4 rounded-lg border border-[#e4e7f3] bg-white p-3">
           <p className="text-xs font-semibold uppercase text-[#656b8a]">
-            Proof event
+            WorkOS event
           </p>
           <p className="mt-2 font-semibold text-[#030527]">
             {invoiceExportProof.action}
           </p>
-          <p className="mt-1 break-words text-sm leading-5 text-[#656b8a]">
-            {invoiceExportProof.actorType}:{invoiceExportProof.actorId} →{" "}
-            {invoiceExportProof.targetType}:{invoiceExportProof.targetId}
-          </p>
           <p className="mt-2 break-words text-xs font-semibold leading-5 text-[#087a62]">
-            {invoiceResource.name} allowed with {invoiceExportPermission}
+            {invoiceResource.name} exported with {invoiceExportPermission}
           </p>
         </div>
       ) : hasMissionRun && sentEvents.length > 0 ? (
         <p className="mt-4 rounded-lg border border-[#e4e7f3] bg-white p-3 text-sm text-[#656b8a]">
-          Waiting for the successful invoice export event.
+          Waiting for the invoice export event.
         </p>
       ) : (
         <p className="mt-4 rounded-lg border border-[#e4e7f3] bg-white p-3 text-sm text-[#656b8a]">
-          Test agent access to create audit events.
+          Check access to create audit events.
         </p>
       )}
 
       {hasMissionRun && previewEvents.length > 1 ? (
         <div className="mt-3 grid gap-2">
           <p className="text-xs font-semibold uppercase text-[#8f96bd]">
-            Recent events
+            Recent activity
           </p>
           {previewEvents.map((event) => (
             <PresentedAuditRow key={event.id} event={event} />
@@ -768,7 +758,7 @@ function AuditProof({
         ) : (
           <FileText />
         )}
-        Open in WorkOS Audit Logs
+        Open Audit Logs
       </Button>
 
       {portalState === "error" ? (
@@ -822,12 +812,12 @@ function IntegrationStrip({ statuses }: { statuses: IntegrationStatus[] }) {
         ];
 
   return (
-    <section className="rounded-xl border border-[#e4e7f3] bg-[#fafbff] p-4 text-sm text-[#030527]">
-      <div className="mb-3 flex min-w-0 items-center gap-2 font-semibold text-[#29363d]">
+    <section className="rounded-xl border border-[#e4e7f3] bg-[#fafbff] px-3 py-2 text-xs text-[#030527]">
+      <div className="mb-2 flex min-w-0 items-center gap-2 font-semibold text-[#29363d]">
         <Database className="size-4 text-[#656b8a]" />
-        <span className="min-w-0 break-words">WorkOS APIs used</span>
+        <span className="min-w-0 break-words">Built with</span>
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4">
         {rows.map((status) => (
           <ApiUsageRow key={status.key} status={status} />
         ))}
@@ -839,15 +829,22 @@ function IntegrationStrip({ statuses }: { statuses: IntegrationStatus[] }) {
 function ApiUsageRow({ status }: { status: IntegrationStatus }) {
   const usageByKey: Record<IntegrationStatus["key"], string> = {
     authkit: "Signed-in user",
-    database: "Stored demo state",
+    database: "App storage",
     fga: "Checked human access",
     auditLogs: "Recorded decisions",
   };
 
   return (
-    <div className="rounded-lg border border-[#e4e7f3] bg-white p-3">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <p className="min-w-0 font-semibold text-[#030527]">{status.label}</p>
+    <div className="rounded-lg border border-[#e4e7f3] bg-white px-2.5 py-2">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-[#030527]">
+            {status.label}
+          </p>
+          <p className="mt-0.5 truncate text-[#656b8a]">
+            {usageByKey[status.key]}
+          </p>
+        </div>
         <StatusPill
           label={status.state === "noEventsYet" ? "ready" : status.state}
           className={cn(
@@ -860,7 +857,6 @@ function ApiUsageRow({ status }: { status: IntegrationStatus }) {
           )}
         />
       </div>
-      <p className="mt-1 text-sm text-[#656b8a]">{usageByKey[status.key]}</p>
     </div>
   );
 }
@@ -906,7 +902,7 @@ function ResourceLine({
         </span>
       </div>
       <p className="mt-1 break-words text-xs font-medium text-[#656b8a]">
-        {exportPermission ? "Export permission:" : "Read permission:"}{" "}
+        {exportPermission ? "Agent permission:" : "Read permission:"}{" "}
         <span className="font-mono font-semibold text-[#4e4ee0]">
           {exportPermission ?? readPermission}
         </span>

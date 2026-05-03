@@ -9,10 +9,10 @@ Scoped Agent Delegation demonstrates scoped access for AI agents.
 The key idea:
 
 ```txt
-final decision = human WorkOS access AND local agent scope
+final decision = human WorkOS access AND local agent permission
 ```
 
-A human may be allowed to export a finance document, but the agent cannot do it unless the app has also granted the agent a narrow, temporary scope for that exact action.
+A human may be allowed to export a finance document, but the agent cannot do it unless the app has also granted the agent a narrow, temporary permission for that exact action.
 
 ## System Overview
 
@@ -28,7 +28,7 @@ Next.js App Router
 Authorization decision
   |-----------------------------|
   v                             v
-WorkOS Authorization/FGA     Local Postgres agent-scope check
+WorkOS Authorization/FGA     Local Postgres agent-permission check
   |                             |
   |                             v
   |                         agent_visas
@@ -41,7 +41,7 @@ WorkOS Audit Logs + local audit_events
 
 - **WorkOS AuthKit** owns sign-in and session identity.
 - **WorkOS Authorization/FGA** owns human document access.
-- **WorkOS Audit Logs** receives durable audit events for reset, scope grant, and tool-call decisions.
+- **WorkOS Audit Logs** receives durable audit events for reset, permission grant, and tool-call decisions.
 - **Neon/Postgres** stores local demo state.
 
 ## Demo-Only State
@@ -51,7 +51,7 @@ These are intentionally fake or local:
 - The Finance Agent is a seeded local row in `agents`.
 - The documents are seeded local rows in `resources`; no real document content exists.
 - The mission is scripted in `lib/mission.ts`; no real search, summary, or export tool runs.
-- Agent scopes are local rows in `agent_visas`; the table name is legacy, but the public demo language is "scope."
+- Agent permissions are local rows in `agent_visas`; the table name is legacy, but the public demo language is "permission."
 - `demo_users` contains scaffold/demo identity data and is not the source of truth for AuthKit identity.
 
 ## Request Flow
@@ -96,7 +96,7 @@ It loads:
 - local agent row
 - local resource row
 - WorkOS human access result
-- local agent-scope result
+- local agent-permission result
 
 Then it returns a single `CheckResult` with:
 
@@ -137,7 +137,7 @@ organizationMembershipId: active membership for signed-in user
 
 If WorkOS lookup or authorization fails, the app fails closed and returns a denied decision.
 
-### Local Agent Scope
+### Local Agent Permission
 
 Owned by `lib/authz.ts`, `lib/visas.ts`, and `agent_visas`.
 
@@ -156,14 +156,14 @@ contract.read
 contract.export
 ```
 
-Initial scope state gives the Finance Agent:
+Initial permission state gives the Finance Agent:
 
 ```txt
 invoice.read
 invoice.summarize
 ```
 
-Clicking **Grant invoice.export scope** adds:
+Clicking **Grant invoice.export** adds:
 
 ```txt
 invoice.export
@@ -232,5 +232,5 @@ Do not spread policy decisions into route handlers or UI components. Routes shou
 - This is a demo app, not a production authorization gateway.
 - The agent is simulated; there is no real autonomous runtime.
 - The document tools are scripted; no external document store is queried.
-- WorkOS FGA covers the human side only. The agent-scope model is intentionally local so the concept is easy to inspect.
+- WorkOS FGA covers the human side only. The agent-permission model is intentionally local so the concept is easy to inspect.
 - There is no deployment config yet beyond Vercel-compatible Next.js conventions.

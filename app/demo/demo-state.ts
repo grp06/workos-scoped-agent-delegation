@@ -191,7 +191,7 @@ export function getDemoSteps({
 }: DemoStepInput): DemoStep[] {
   const signedIn = Boolean(signedInEmail);
   const missionRun = toolCalls.length > 0;
-  const scopeGranted = activeVisas.includes(INVOICE_EXPORT_PERMISSION);
+  const permissionGranted = activeVisas.includes(INVOICE_EXPORT_PERMISSION);
   const exportPrepared = Boolean(getPreparedExport(toolCalls));
   const exportBlocked =
     exportPrepared || hasInvoiceExportWithDecision(toolCalls, "denied");
@@ -202,7 +202,7 @@ export function getDemoSteps({
     signedIn,
     missionRun,
     exportBlocked,
-    scopeGranted,
+    permissionGranted,
     exportPrepared,
     auditProof,
   ];
@@ -225,7 +225,7 @@ export function getDemoSteps({
     },
     {
       key: "missionRun",
-      label: "Test access",
+      label: "Check access",
       state: state(1),
       detail: missionRun ? "Access check completed" : "Start the check",
     },
@@ -234,24 +234,24 @@ export function getDemoSteps({
       label: "Export blocked",
       state: state(2),
       detail: exportBlocked
-        ? "Invoice export denied before scope"
+        ? "Invoice export denied before permission"
         : `Agent lacks ${INVOICE_EXPORT_PERMISSION}`,
     },
     {
       key: "visaGranted",
-      label: "Scope granted",
+      label: "Permission granted",
       state: state(3),
-      detail: scopeGranted
+      detail: permissionGranted
         ? `${INVOICE_EXPORT_PERMISSION} active`
-        : "Grant narrow access",
+        : "Grant narrow permission",
     },
     {
       key: "exportPrepared",
-      label: "Run again",
+      label: "Retry export",
       state: state(4),
       detail: exportPrepared
         ? "Invoice export prepared"
-        : "Retry check with scope",
+        : "Retry check with permission",
     },
     {
       key: "auditProof",

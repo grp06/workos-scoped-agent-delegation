@@ -20,7 +20,7 @@ export default function Home() {
             </p>
             <p className="mt-5 max-w-xl text-base leading-7 text-zinc-600">
               A human can have broad access, but an agent only gets narrow,
-              temporary scope. Every tool call is checked by both gates,
+              temporary permission. Every tool call is checked by both gates,
               explained, and recorded.
             </p>
             <Link
@@ -45,7 +45,11 @@ export default function Home() {
             <div className="space-y-3">
               {[
                 ["WorkOS FGA", "Human can view payroll", "allowed"],
-                ["Agent scope", "Finance Agent lacks payroll.export", "denied"],
+                [
+                  "Agent permission",
+                  "Finance Agent lacks payroll.export",
+                  "denied",
+                ],
                 ["Audit Logs", "agent.tool_call.denied", "recorded"],
               ].map(([label, value, state]) => (
                 <div

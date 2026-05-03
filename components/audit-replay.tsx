@@ -10,13 +10,18 @@ interface AuditReplayProps {
   events: AuditEvent[];
 }
 
-type AuditFilter = "all" | "allowed" | "denied" | "scopeGrants" | "workosSent";
+type AuditFilter =
+  | "all"
+  | "allowed"
+  | "denied"
+  | "permissionGrants"
+  | "workosSent";
 
 const filters: Array<{ key: AuditFilter; label: string }> = [
   { key: "all", label: "All" },
   { key: "allowed", label: "Allowed" },
   { key: "denied", label: "Denied" },
-  { key: "scopeGrants", label: "Scope grants" },
+  { key: "permissionGrants", label: "Permission grants" },
   { key: "workosSent", label: "WorkOS sent" },
 ];
 
@@ -29,7 +34,7 @@ function filterEvents(events: AuditEvent[], filter: AuditFilter) {
     return events.filter((event) => event.decision === "denied");
   }
 
-  if (filter === "scopeGrants") {
+  if (filter === "permissionGrants") {
     return events.filter((event) => event.action === "agent.visa.granted");
   }
 

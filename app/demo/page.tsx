@@ -25,10 +25,6 @@ export default async function DemoPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-full border border-[#d7f8ee] bg-[#e9fff9] px-3 py-2 text-sm font-medium text-[#087a62] sm:flex">
-              <span className="size-2 rounded-full bg-[#3ff1c7]" />
-              Live
-            </div>
             <form action="/logout" method="post">
               <button
                 type="submit"

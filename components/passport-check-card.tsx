@@ -44,7 +44,7 @@ export default function PassportCheckCard({ result }: PassportCheckCardProps) {
           />
           <Operator text="AND" />
           <DecisionLine
-            label="Agent scope"
+            label="Agent permission"
             value={result.agentVisaAllows}
             detail={result.requiredPermission ?? "not configured"}
           />
